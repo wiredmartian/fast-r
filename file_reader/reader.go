@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
 
 type Reader interface {
@@ -27,20 +28,28 @@ func (f *FileReader) ReadAllTokens(path string) ([]string, error) {
 
 	reader := bufio.NewReader(file)
 	// read file line by line
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				// done reading file
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				wg.Done()
+				if err == io.EOF {
+					// done reading file
+					break
+				}
 				break
 			}
-			break
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			f.tokens = append(f.tokens, line)
 		}
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		f.tokens = append(f.tokens, line)
-	}
+	}()
+
+	wg.Wait()
 	return f.tokens, nil
 }
 
