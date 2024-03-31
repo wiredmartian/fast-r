@@ -3,36 +3,54 @@ package main
 import (
 	filereader "fast-rw/file_reader"
 	"fmt"
+	"log"
 	"time"
 )
 
-func main() {
-	tReader := filereader.FileReader{}
-	output := make(chan string)
-	done := make(chan bool)
+var (
+	workers = 2
+)
 
+func main() {
+	tokenReader := filereader.FileReader{}
+	output := make(chan string)
+	input := make(chan string)
+	done := make(chan bool)
+	var tokens []string
+
+	// read all tokens from file
+	tokens, err := tokenReader.ReadAllTokens("file.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// create workers to process the tokens
+	for i := 0; i < workers; i++ {
+		go tokenReader.Worker(input, output, done)
+	}
+
+	// split the tokens into equal parts
 	go func() {
-		tReader.ReadTokens("file_reader/reader.go", output, done)
+		for i := 0; i < len(tokens); i++ {
+			input <- tokens[i]
+		}
+		close(done)
 	}()
 
-	var tokens []string
-	completed := false
+	// print the tokens
 	for {
+		finished := false
 		select {
-		case token := <-output:
-			tokens = append(tokens, token)
-			fmt.Println(token)
-			// sleep for 100ms to simulate processing
+		case t := <-output:
+			// simulate processing
 			time.Sleep(100 * time.Millisecond)
+			fmt.Println("Line : ", t)
 		case <-done:
-			close(output)
-			close(done)
-			completed = true
+			finished = true
 		}
-		if completed {
+		if finished {
 			break
 		}
 	}
-
 	fmt.Println(len(tokens), " File Tokens Processed")
 }
