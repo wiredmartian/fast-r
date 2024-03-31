@@ -29,7 +29,7 @@ func main() {
 		go tokenReader.Worker(input, output, done)
 	}
 
-	// split the tokens into equal parts
+	// send tokens to workers
 	go func() {
 		for i := 0; i < len(tokens); i++ {
 			input <- tokens[i]
