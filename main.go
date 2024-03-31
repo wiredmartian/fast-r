@@ -1,7 +1,7 @@
 package main
 
 import (
-	filereader "fast-rw/file_reader"
+	filereader "fast-r/file_reader"
 	"fmt"
 	"log"
 	"time"
